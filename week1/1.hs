@@ -54,8 +54,7 @@ nAnd2 x y = True
 -- 9
 
 max2 :: Int -> Int -> Int
-max2 x y = 
-  if x >= y then x else y
+max2 x y = if x >= y then x else y
 
 
 -- 10
