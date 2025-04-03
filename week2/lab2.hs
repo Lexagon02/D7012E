@@ -109,8 +109,8 @@ mkfun :: (EXPR, EXPR) -> (Float -> Float)
 mkfun (body, Var varName) = \x -> eval body [(varName, x)]
 mkfun _ = error "The second argument must be a variable (Var)."
 
-findzero :: String -> String -> Float -> Float
-findzero var body x0 =
+findZero :: String -> String -> Float -> Float
+findZero var body x0 =
   let
     -- Parse the function body and compute its derivative
     f = mkfun (parse body, Var var)                                 -- Create a function from the parsed expression

@@ -20,12 +20,16 @@ sumList ns = sum ns
 
 -- 9.7 
 minValue :: [Int] -> Int
-minValue [] = 0
+minValue [] = error "Empty list"
 minValue ns = foldl min (head ns) ns
 
 equalValuesInList :: [Int] -> Bool
 equalValuesInList [] = True
 equalValuesInList ns = foldl (\acc x -> (x == head ns) && acc) True ns
+
+gtZero :: [Int] -> Bool
+gtZero [] = True
+gtZero ns = foldl (\acc x -> (x > 0) && acc) True ns
 
 accendingListGreaterThanZero :: [Int] -> Bool
 accendingListGreaterThanZero [] = True
@@ -33,7 +37,7 @@ accendingListGreaterThanZero [_] = True
 accendingListGreaterThanZero (x:y:ns) = x > 0 && y > x && accendingListGreaterThanZero (y:ns)
 
 -- 9.9
-iter :: Int -> (Int -> Int) -> Int -> Int
+iter :: Int -> (a -> a) -> a -> a
 iter 0 f x = x
 iter n f x = iter (n-1) f (f x)
 
@@ -57,3 +61,13 @@ filterFirst p (x:xs)
 -- returnLoan function
 returnLoan :: Eq a => a -> [a] -> [a]
 returnLoan book loans = filterFirst (/= book) loans
+
+-- 10.7
+flip :: (a -> b -> c) -> b -> a -> c
+flip f x y = f y x
+
+-- 10.8 
+isNotSpace :: Char -> Bool
+isNotSpace c = (\c -> if c == ' ' then False else True) c
+
+-- 10.22
