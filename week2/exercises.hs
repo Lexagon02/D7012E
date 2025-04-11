@@ -57,3 +57,9 @@ filterFirst p (x:xs)
 -- returnLoan function
 returnLoan :: Eq a => a -> [a] -> [a]
 returnLoan book loans = filterFirst (/= book) loans
+
+kill :: [Int] -> [Int]
+kill [] = []
+kill (x:xs)
+    | x == 1    = 0 : kill xs
+    | otherwise = x : kill xs
