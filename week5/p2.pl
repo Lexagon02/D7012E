@@ -1,3 +1,4 @@
+% Leo Rydeker Bergström
 % Transform the input list into a list of tuples (Index, Value)
 index_list([], _, []).
 index_list([Head|Tail], Index, [(Index, Head)|IndexedTail]) :-
@@ -38,9 +39,24 @@ remove_first_and_last(List, Filtered) :-
 prepend_with_sum((Index, Value), (Subset, Sum), ([(Index, Value)|Subset], NewSum)) :-
     NewSum is Sum + Value.
 
-% Sort subsets by their sums in descending order
+% Sort subsets by their sums in ascending order using quicksort
 sort_subsets_by_sum(SubsetsWithSums, SortedSubsets) :-
-    sort(2, @=<, SubsetsWithSums, SortedSubsets).
+    quicksort(SubsetsWithSums, SortedSubsets).
+
+quicksort([], []).
+quicksort([Pivot|Tail], Sorted) :-
+    partition(Pivot, Tail, Less, Greater),
+    quicksort(Less, SortedLess),
+    quicksort(Greater, SortedGreater),
+    append(SortedLess, [Pivot|SortedGreater], Sorted).
+
+partition((_, _), [], [], []).
+partition((_, Sum1), [((Subset, Sum2))|Tail], [((Subset, Sum2))|Less], Greater) :-
+    Sum2 =< Sum1, % Change comparison to <= for ascending order
+    partition((_, Sum1), Tail, Less, Greater).
+partition((_, Sum1), [((Subset, Sum2))|Tail], Less, [((Subset, Sum2))|Greater]) :-
+    Sum2 > Sum1, % Change comparison to > for ascending order
+    partition((_, Sum1), Tail, Less, Greater).
 
 extract_indices_and_values([], _, _, []).
 extract_indices_and_values([(Index, Value)], FirstIndex, LastIndex, [Value]) :-
@@ -52,18 +68,18 @@ extract_indices_and_values([(Index, Value)|Tail], FirstIndex, LastIndex, [Value|
     ( Tail = [] -> LastIndex = Index ; true ),        % If this is the last element, set LastIndex
     extract_indices_and_values(Tail, FirstIndex, LastIndex, ValuesTail).
 
-print_n_largest_subsets([], _).
-print_n_largest_subsets(_, 0).
-print_n_largest_subsets([((Subset, Sum))|Subsets], N) :-
+print_n_smallest_subsets([], _).
+print_n_smallest_subsets(_, 0).
+print_n_smallest_subsets([((Subset, Sum))|Subsets], N) :-
     N > 0,
     extract_indices_and_values(Subset, FirstIndex, LastIndex, SubsetValues),
     format('~w, ~w, ~w, ~w', [Sum, FirstIndex, LastIndex, SubsetValues]), nl,
     N1 is N - 1,
-    print_n_largest_subsets(Subsets, N1).
+    print_n_smallest_subsets(Subsets, N1).
 
-% Queries
+% Queries [-1,2,-3,4,-5] k=3, [3,2,-4,3,2,-5,-2,2,3,-3,2,-5,6,-2,2,3] k=8, [24,-11,-34,42,-24,7,-19,21] k=6
 ?- recreate_with_indices([24,-11,-34,42,-24,7,-19,21], IndexedList),
    find_all_subsets_with_sums(IndexedList, SubsetsWithSums),
    remove_first_and_last(SubsetsWithSums, FilteredSubsetsWithSums),
    sort_subsets_by_sum(FilteredSubsetsWithSums, SortedSubsets),
-   print_n_largest_subsets(SortedSubsets, 3).
+   print_n_smallest_subsets(SortedSubsets, 6).
