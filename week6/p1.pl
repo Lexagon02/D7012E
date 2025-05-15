@@ -1,38 +1,54 @@
-% Leo Rydeker Bergström
+% Leo Rydeker Bergström         leoryd-1
 
-% Goal state: Package is delivered to room2
-goal_state(state(room2, _, _, room2)).
+% List of moves in optimal order
+% 1. Pick up the steel key
+% 2. Move to room2
+% 3. Drop pick up brass key
+% 4. Move to room1
+% 5. Drop steel key
+% 6. move to room3
+% 7. Pick up package
+% 8. Move to room1
+% 9. drop brass key
+% 10. pick up steel key
+% 11. Move to room2
+% 12. Drop package
 
-% Move between rooms
-doMove(state(room1, SteelKey, BrassKey, Package), state(room2, SteelKey, BrassKey, Package), _, _, move(room1, room2)).
-doMove(state(room2, SteelKey, BrassKey, Package), state(room1, SteelKey, BrassKey, Package), _, _, move(room2, room1)).
-doMove(state(room2, SteelKey, BrassKey, Package), state(room3, SteelKey, BrassKey, Package), _, _, move(room2, room3)).
-doMove(state(room3, SteelKey, BrassKey, Package), state(room2, SteelKey, BrassKey, Package), _, _, move(room3, room2)).
 
-% Pick up items
-doMove(state(Room, Room, BrassKey, Package), state(Room, robot, BrassKey, Package), steel, _, pick_up(steel)).
-doMove(state(Room, SteelKey, Room, Package), state(Room, SteelKey, robot, Package), brass, _, pick_up(brass)).
-doMove(state(Room, SteelKey, BrassKey, Room), state(Room, SteelKey, BrassKey, robot), package, _, pick_up(package)).
+% Move between rooms (requires keys)
+move(state(SK, has, Pa, Items, r1), walk(r1, r3), state(SK, has, Pa, Items, r3)). % Move to room3 from room1
+move(state(SK, has, Pa, Items, r3), walk(r3, r1), state(SK, has, Pa, Items, r1)). % Move to room1 from room3
+move(state(has, BK, Pa, Items, r1), walk(r1, r2), state(has, BK, Pa, Items, r2)). % Move to room2 from room1
+move(state(has, BK, Pa, Items, r2), walk(r2, r1), state(has, BK, Pa, Items, r1)). % Move to room1 from room2
 
-% Drop items
-doMove(state(Room, robot, BrassKey, Package), state(Room, Room, BrassKey, Package), steel, _, drop(steel)).
-doMove(state(Room, SteelKey, robot, Package), state(Room, SteelKey, Room, Package), brass, _, drop(brass)).
-doMove(state(Room, SteelKey, BrassKey, robot), state(Room, SteelKey, BrassKey, Room), package, _, drop(package)).
+% Pick up items (enforce two-item limit)
+move(state(Room, BK, Pa, Items, Room), grasp(steelKey, Room), state(has, BK, Pa, Items2, Room)) :-
+    Items < 2, Items2 is Items + 1. % Pick up steel key
+move(state(SK, Room, Pa, Items, Room), grasp(brassKey, Room), state(SK, has, Pa, Items2, Room)) :-
+    Items < 2, Items2 is Items + 1. % Pick up brass key
+move(state(SK, BK, Room, Items, Room), grasp(package, Room), state(SK, BK, has, Items2, Room)) :-
+    Items < 2, Items2 is Items + 1. % Pick up package
+
+% Drop items (only if holding an item)
+move(state(has, BK, Pa, Items, Room), drop(steelKey, Room), state(Room, BK, Pa, Items2, Room)) :-
+    Items2 is Items - 1, Items > 0. % Drop steel key
+move(state(SK, has, Pa, Items, Room), drop(brassKey, Room), state(SK, Room, Pa, Items2, Room)) :-
+    Items2 is Items - 1, Items > 0. % Drop brass key
+move(state(SK, BK, has, Items, Room), drop(package, Room), state(SK, BK, Room, Items2, Room)) :-
+    Items2 is Items - 1, Items > 0. % Drop package
 
 % Base case: Goal state is reached
-solveR(State, _, []) :-
-    goal_state(State).
+solve_robot(state(_, _, has, _, r2), _, [done|[]]). 
+solve_robot(state(_, _, r2, _, r2), _, [done|[]]). 
 
 % Recursive case: Try a move and continue searching
-solveR(State, N, [Move|Trace]) :-
+solve_robot(State1, N, [Move|Trace]) :-
     N > 0,
-    doMove(State, NewState, _, _, Move), % Replace Item1 and Item2 with `_`
-    N1 is N - 1,
-    solveR(NewState, N1, Trace).
+    move(State1, Move, State2),
+    N2 is N - 1,
+    solve_robot(State2, N2, Trace).
 
 % Start the search
 start(Trace, N) :-
-    InitialState = state(room1, room1, room2, room3), % Robot starts in room1, items are in their respective rooms
-    solveR(InitialState, N, Trace).
-
-% start(Trace, 5).
+    integer(N), % Ensure N is instantiated
+    solve_robot(state(r1, r2, r3, 0, r1), N, Trace).
