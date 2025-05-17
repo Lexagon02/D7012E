@@ -86,7 +86,7 @@ initBoard([ [.,.,.,.,.,.],
 %%%  holds iff InitialState is the initial state and 
 %%%  InitialPlyr is the player who moves first. 
 
-initialize(InitialState,InitialPlyr) :- rndBoardXYZ(InitialState), InitialPlyr = 1.
+initialize(InitialState,InitialPlyr) :- initBoard(InitialState), InitialPlyr = 1.
 
 
 
@@ -110,13 +110,7 @@ winner(State, Plyr) :-
     (
         (Score1 < Score2, Plyr = 1) ;
         (Score2 < Score1, Plyr = 2)
-    ). %,
-    % Print final board and scores
-    %nl, writeln('*** G A M E   O V E R ***'),
-    %showState(State),
-    %format('Player 1 score: ~w~n', [Score1]),
-    %format('Player 2 score: ~w~n', [Score2]),
-    %writeln('*************************').
+    ). 
 	
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
@@ -130,13 +124,7 @@ tie(State) :-
     terminal(State),
     getScore(State, 1, Score1), 
     getScore(State, 2, Score2),
-    Score1 = Score2. %,
-    % Print final board and scores
-    %nl, writeln('*** G A M E   O V E R (TIE) ***'),
-    %showState(State),
-    %format('Player 1 score: ~w~n', [Score1]),
-    %format('Player 2 score: ~w~n', [Score2]),
-    %writeln('*************************').
+    Score1 = Score2. 
 
 
 
@@ -217,9 +205,9 @@ moves(Plyr, State, MvList) :-
     findall(Y, perm(2, RangeList, Y), CoordList),
     calculateTestmoves(Plyr, State, CoordList, [], Moves),
     sort(Moves, Moves2),
-    removeEmpties(Moves2, MvList),
-    %filter_coords(Moves3, MvList),
-    format('DEBUG: Player ~w possible moves: ~w~n', [Plyr, MvList]).
+    removeEmpties(Moves2, Moves3),
+    filter_coords(Moves3, MvList).  % Ensures that the moves are valid coordinates
+    %format('DEBUG: Player ~w possible moves: ~w~n', [Plyr, MvList]).
 
 calculateTestmoves(_,_,[],Temp,Temp). 						% For the list of Cordinates run its
 calculateTestmoves(Plyr,State,[Head|Tails],Temp,Moves) :- 	% length to find all possible movies.
@@ -320,21 +308,22 @@ validmove(Plyr, State, Proposed) :-
     move(Plyr, State, Proposed).    % There must be at least one direction to flip
 
 % Try all 8 directions for a possible flip
-move(Plyr, State, [X, Y]) :- north([DX, DY]),     trymove(Plyr, State, [X, Y], [DX, DY]).
-move(Plyr, State, [X, Y]) :- south([DX, DY]),     trymove(Plyr, State, [X, Y], [DX, DY]).
-move(Plyr, State, [X, Y]) :- east([DX, DY]),      trymove(Plyr, State, [X, Y], [DX, DY]).
-move(Plyr, State, [X, Y]) :- west([DX, DY]),      trymove(Plyr, State, [X, Y], [DX, DY]).
-move(Plyr, State, [X, Y]) :- northeast([DX, DY]), trymove(Plyr, State, [X, Y], [DX, DY]).
-move(Plyr, State, [X, Y]) :- northwest([DX, DY]), trymove(Plyr, State, [X, Y], [DX, DY]).
-move(Plyr, State, [X, Y]) :- southeast([DX, DY]), trymove(Plyr, State, [X, Y], [DX, DY]).
-move(Plyr, State, [X, Y]) :- southwest([DX, DY]), trymove(Plyr, State, [X, Y], [DX, DY]).
+% Try all 8 directions for a possible flip
+move(Plyr, State, [X, Y]) :- trymove(Plyr, State, [X, Y], [0, -1]). % North
+move(Plyr, State, [X, Y]) :- trymove(Plyr, State, [X, Y], [0, 1]).  % South
+move(Plyr, State, [X, Y]) :- trymove(Plyr, State, [X, Y], [1, 0]).  % East
+move(Plyr, State, [X, Y]) :- trymove(Plyr, State, [X, Y], [-1, 0]). % West
+move(Plyr, State, [X, Y]) :- trymove(Plyr, State, [X, Y], [1, -1]). % Northeast
+move(Plyr, State, [X, Y]) :- trymove(Plyr, State, [X, Y], [-1, -1]).% Northwest
+move(Plyr, State, [X, Y]) :- trymove(Plyr, State, [X, Y], [1, 1]).  % Southeast
+move(Plyr, State, [X, Y]) :- trymove(Plyr, State, [X, Y], [-1, 1]). % Southwest
 
 % trymove/4: True if there is a valid flip in the given direction
 trymove(Plyr, State, [X,Y], [X2,Y2]) :-
-	X3 is X+X2,  %Opponent coordinate
+	X3 is X+X2,  % Opponent coordinate
 	Y3 is Y+Y2,
 	validCords([X3,Y3]),
-	X4 is X3+X2, %Player coordinate
+	X4 is X3+X2, % Player coordinate
 	Y4 is Y3+Y2,
 	validCords([X4,Y4]),
 	getOtherPlayer(Plyr, Opponent),
@@ -348,15 +337,6 @@ trymove(Plyr, State, [X,Y], [X2,Y2]) :-
 		trymove(Plyr,State,[X5,Y5],[X2,Y2])
 	).
 
-% Direction helpers
-north([0,-1]).
-south([0,1]).
-east([1,0]).
-west([-1,0]).
-northeast([1,-1]).
-northwest([-1,-1]).
-southeast([1,1]).
-southwest([-1,1]).
 
 % Valid coordinates for a 6x6 board
 validCords([X,Y]) :- X >= 0, X < 6, Y >= 0, Y < 6.
@@ -394,15 +374,34 @@ countInRow([Other|T], Plyr, N) :-
 %          the value of state (see handout on ideas about
 %          good heuristics.
 
-% Returns 100 if player 1 wins, -100 if player 2 wins, 0 if tie.
-h(State, -100) :- winner(State, 1), !.
-h(State, 100) :- winner(State, 2), !.
+
+% Large values for terminal states
+h(State, 500) :- winner(State, 2), !.
+h(State, -500) :- winner(State, 1), !.
 h(State, 0) :- tie(State), !.
+
 h(State, Val) :-
     getScore(State, 1, Score1),
     getScore(State, 2, Score2),
+    emptyCount(State, Empty),
+    cornerPenalty(State, CornerPenalty),
+    % Only start caring about disc difference in the endgame
+    (Empty < 12 -> DiscScore is (Score1 - Score2) ; DiscScore is 0),
+    % Parity bonus: prefer even number of empty squares
+    (0 is Empty mod 2 -> ParityBonus = 10 ; ParityBonus = 0),
+    Val is (-DiscScore + 15*CornerPenalty - ParityBonus).
 
-    Val is (Score2 - Score1).
+% Count empty squares
+emptyCount(State, Count) :-
+    flatten(State, Flat),
+    include(=(.), Flat, Empties),
+    length(Empties, Count).
+
+% Penalize for owning corners
+cornerPenalty(State, Penalty) :-
+    findall([X,Y], member([X,Y], [[0,0],[0,5],[5,0],[5,5]]), Corners),
+    findall(1, (member([X,Y], Corners), get(State, [X,Y], 2)), L),
+    length(L, Penalty).
 
 
 
@@ -415,7 +414,7 @@ h(State, Val) :-
 %   - returns a value B that is less than the actual or heuristic value
 %     of all states.
 
-lowerBound(B) :- B = -200.
+lowerBound(B) :- B = -10000.
 
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
@@ -426,7 +425,7 @@ lowerBound(B) :- B = -200.
 %   - returns a value B that is greater than the actual or heuristic value
 %     of all states.
 
-upperBound(B) :- B = 200.
+upperBound(B) :- B = 10000.
 
 
 % DO NOT CHANGE THIS BLOCK OF COMMENTS.
