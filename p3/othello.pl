@@ -387,9 +387,7 @@ h(State, Val) :-
     cornerPenalty(State, CornerPenalty),
     % Only start caring about disc difference in the endgame
     (Empty < 12 -> DiscScore is (Score1 - Score2) ; DiscScore is 0),
-    % Parity bonus: prefer even number of empty squares
-    (0 is Empty mod 2 -> ParityBonus = 10 ; ParityBonus = 0),
-    Val is (-DiscScore + 15*CornerPenalty - ParityBonus).
+    Val is (-DiscScore + 15*CornerPenalty).
 
 % Count empty squares
 emptyCount(State, Count) :-
